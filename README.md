@@ -1,238 +1,726 @@
-# Credential Protocol — Decentralized Professional Credential Auditor
+# Credential Protocol — API Server
 
-A decentralized professional credential verification platform built on Stellar Soroban smart contracts, using Federated Byzantine Agreement (FBA) trust slices to audit licenses, degrees, and certifications across borders — for every regulated and credentialed profession, not just one.
+A robust, production-grade Express.js and TypeScript-based API server for the Credential Protocol decentralized professional credential verification platform. This repository contains the backend REST API and WebSocket services that orchestrate interactions between the frontend applications and Stellar Soroban smart contracts, providing credential issuance, verification, attestation, and quorum slice management endpoints.
 
-Professional certifications vary by country and by industry, making it difficult for employers, clients, and regulators to verify credentials quickly and reliably. Credential Protocol replaces fragmented government portals, licensing boards, and diploma mills with a single trustless, privacy-preserving audit layer — powered by the same consensus model that underlies Stellar itself.
+## 📋 Table of Contents
 
-Credential Protocol supports (and is expanding beyond):
+- [Overview](#overview)
+- [Architecture](#architecture)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Development](#development)
+- [API Endpoints](#api-endpoints)
+- [WebSocket Events](#websocket-events)
+- [Authentication](#authentication)
+- [Rate Limiting](#rate-limiting)
+- [Error Handling](#error-handling)
+- [Database](#database)
+- [Testing](#testing)
+- [Deployment](#deployment)
+- [Performance](#performance)
+- [Security](#security)
+- [Monitoring](#monitoring)
+- [Contributing](#contributing)
+- [License](#license)
 
-- ✅ Engineers
-- ✅ Doctors / Medical professionals
-- ✅ Lawyers
-- ✅ Accountants / CFAs
-- ✅ Nurses
-- ✅ Teachers
-- ✅ Project Managers
-- ✅ Security Professionals
-- ✅ Financial Advisors
-- ✅ Architects
+## 🎯 Overview
 
-## 🎯 What is Credential Protocol?
+The Credential Protocol API Server is the central orchestration layer that:
 
-Credential Protocol lets any professional build a **Quorum Slice** — a personal trust network made up of:
+1. **Manages HTTP REST endpoints** for credential lifecycle operations
+2. **Facilitates smart contract interactions** with Stellar Soroban contracts
+3. **Provides real-time updates** via WebSocket connections
+4. **Handles authentication** and authorization for users and issuers
+5. **Implements rate limiting** and abuse prevention
+6. **Caches frequently accessed data** for performance
+7. **Logs and monitors** all operations for security and debugging
+8. **Validates credentials** and attestation requests
 
-- 🎓 Their **University or Training Institution** (degree/certification attestation)
-- 🏛️ A **Licensing Board or Professional Society** (e.g. medical board, bar association, CFA Institute, nursing board, PMI, ISC², FINRA/CFP Board, NCARB, or a national engineering society)
-- 🏢 **Previous Employers** (professional history)
+This split repository contains only the API backend code, separated from frontend and smart contract layers for independent scaling and deployment. The API is designed to be stateless for horizontal scaling across multiple server instances.
 
-Each node in the slice co-signs a **Soulbound Token (SBT)** on Stellar, creating a tamper-proof, portable credential that any firm can verify instantly — without contacting each institution individually.
+## 🏗️ Architecture
 
-This applies the Stellar whitepaper's "individual trust decisions" model to a high-stakes professional use case.
+### High-Level Architecture
 
-## ⚠️ ZK Verification — Non-Functional Stub
-
-> **Do not use `verify_claim` in production.**
-> The `zk_verifier` contract accepts **any non-empty byte string** as a valid proof.
-> It performs **no cryptographic verification** and provides **no privacy guarantees**.
-> It is admin-gated to limit exposure, but the gate is not a substitute for real ZK logic.
-> Real proof verification (Groth16/PLONK) is tracked in [#ZK-IMPL](https://github.com/credential-labs/credential-protocol/issues) and targeted for v1.1.
-
-## 🚀 Features
-
-- **Audit Slices**: Define your own quorum of trusted attestors (university, licensing body, employers)
-- **Soulbound Tokens (SBTs)**: Non-transferable on-chain credentials tied to your Stellar identity
-- **Conditional Verification (stub)**: API exists for claim-specific proofs (e.g. "has an active Medical License" or "has a Mechanical Engineering degree") but ZK verification is not yet implemented — see warning above
-- **Cross-Border Ready**: Instant verification for international hiring, no embassy letters or notarizations
-- **Privacy-First**: Credential holders control what is revealed and to whom
-- **Trustless**: No central registry — verification is enforced by smart contract logic
-
-## 🛠️ Quick Start
-
-### Prerequisites
-
-- Rust (1.70+)
-- Soroban CLI
-- Stellar CLI
-
-### Build
-
-```bash
-./scripts/build.sh
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Frontend Applications                     │
+│              (Vue.js + React Dashboard)                      │
+└────────────────────┬────────────────────────────────────────┘
+                     │ HTTP/REST & WebSocket
+┌────────────────────▼────────────────────────────────────────┐
+│                   API Server (Node.js)                        │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Express.js Routes & Middleware                      │  │
+│  │  • REST API Endpoints                                │  │
+│  │  • WebSocket Server                                  │  │
+│  │  • Authentication & Authorization                    │  │
+│  │  • Rate Limiting & Throttling                        │  │
+│  │  • Request Validation & Logging                      │  │
+│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Business Logic Services                             │  │
+│  │  • Credential Service                                │  │
+│  │  • Attestation Service                               │  │
+│  │  • Quorum Slice Service                              │  │
+│  │  • Stellar/Contract Service                          │  │
+│  │  • Analytics Service                                 │  │
+│  └──────────────────────────────────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Infrastructure Layer                                │  │
+│  │  • Database (PostgreSQL/MongoDB)                     │  │
+│  │  • Redis Cache                                       │  │
+│  │  • File Storage                                      │  │
+│  │  • Logging & Monitoring                              │  │
+│  └──────────────────────────────────────────────────────┘  │
+└────────────────────┬────────────────────────────────────────┘
+                     │ JSON RPC
+┌────────────────────▼────────────────────────────────────────┐
+│          Stellar Soroban Smart Contracts                     │
+│  • CredentialProtocol Contract                              │
+│  • SBT Registry Contract                                    │
+│  • ZK Verifier Contract (Stub)                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Test
+### Request Flow
 
-```bash
-./scripts/test.sh
+```
+User Request (Frontend)
+    ↓
+Express Router (Route matching)
+    ↓
+Middleware Stack (Auth, Validation, Logging)
+    ↓
+Controller (Request handling)
+    ↓
+Service Layer (Business logic)
+    ↓
+Data/Stellar Layer (DB/Contract calls)
+    ↓
+Response (JSON)
+    ↓
+Frontend (State update & UI render)
 ```
 
-### Setup Environment
+## ✨ Features
 
-Copy the example environment file:
+### Core Features
+
+- **RESTful API**: Clean, standards-compliant HTTP endpoints
+- **Credential Management**: Issue, retrieve, revoke, and verify credentials
+- **Attestation Workflow**: Multi-step attestation by designated authorities
+- **Quorum Slice Management**: Create and manage trust networks
+- **SBT Operations**: Mint, burn, and transfer Soulbound Tokens
+- **Credential Verification**: Cross-check credentials against smart contracts
+- **Batch Operations**: Bulk issue and verify credentials
+- **Real-time Updates**: WebSocket events for credential state changes
+
+### Advanced Features
+
+- **Smart Contract Integration**: Direct interaction with Stellar Soroban
+- **WebSocket Support**: Real-time credential and attestation updates
+- **Multi-tenant Architecture**: Support for multiple issuers/authorities
+- **Analytics & Reporting**: Track credential metrics and trends
+- **Audit Logging**: Complete audit trail of all operations
+- **Rate Limiting**: Protect against abuse and DoS attacks
+- **Caching Strategy**: Redis integration for performance
+- **Error Handling**: Comprehensive error codes and messages
+- **Request Validation**: Input validation and sanitization
+- **CORS Support**: Cross-origin resource sharing for frontend apps
+
+## 🔧 Prerequisites
+
+### System Requirements
+
+- **Node.js**: 18.x LTS or higher
+- **npm**: 9.x or higher (or yarn/pnpm)
+- **Git**: 2.x or higher
+- **Docker** (optional): For containerized deployment
+
+### Runtime Dependencies
+
+- **PostgreSQL** or **MongoDB**: Primary database
+- **Redis**: For caching and session management
+- **Stellar Test Account**: For development/testing
+
+### Development Tools
+
+- **TypeScript**: 5.x
+- **ESLint**: Code quality
+- **Prettier**: Code formatting
+- **Vitest** or **Jest**: Testing framework
+- **Docker Compose** (optional): Local development environment
+
+## 📥 Installation
+
+### 1. Clone Repository
 
 ```bash
-cp .env.example .env
+git clone https://github.com/credential-labs/credential-protocol-api.git
+cd credential-protocol-api
 ```
 
-Configure your environment variables in `.env`:
+### 2. Install Dependencies
+
+```bash
+npm install
+# or
+yarn install
+```
+
+### 3. Environment Setup
+
+Create `.env.local` from template:
+
+```bash
+cp .env.example .env.local
+```
+
+Configure environment variables:
 
 ```env
-# Network configuration
+# Server Configuration
+NODE_ENV=development
+PORT=3000
+HOST=localhost
+API_VERSION=v1
+LOG_LEVEL=debug
+
+# Database Configuration
+DATABASE_URL=postgresql://user:password@localhost:5432/credential_db
+# or for MongoDB:
+MONGODB_URL=mongodb://localhost:27017/credential_db
+DB_POOL_SIZE=20
+DB_MAX_CONNECTIONS=50
+
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# Stellar Configuration
 STELLAR_NETWORK=testnet
 STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+STELLAR_ACCOUNT_SECRET=SBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-# Contract addresses (after deployment)
-CONTRACT_CREDENTIAL_PROTOCOL=<your-contract-id>
-CONTRACT_SBT_REGISTRY=<your-contract-id>
-CONTRACT_ZK_VERIFIER=<your-contract-id>
+# Smart Contract Addresses
+CONTRACT_CREDENTIAL_PROTOCOL=CBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+CONTRACT_SBT_REGISTRY=CBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+CONTRACT_ZK_VERIFIER=CBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
-# Frontend configuration
-VITE_STELLAR_NETWORK=testnet
-VITE_STELLAR_RPC_URL=https://soroban-testnet.stellar.org
+# API Keys & Security
+JWT_SECRET=your-super-secret-jwt-key-min-32-chars
+JWT_EXPIRY=24h
+ISSUER_API_KEY=sk_live_XXXXXXXXXXXXXXXXXXXX
+ADMIN_API_KEY=sk_admin_XXXXXXXXXXXXXXXXXXXX
+
+# CORS Configuration
+CORS_ORIGIN=http://localhost:5173,http://localhost:5174
+CORS_CREDENTIALS=true
+
+# Rate Limiting
+RATE_LIMIT_WINDOW=900000
+RATE_LIMIT_MAX_REQUESTS=100
+RATE_LIMIT_MAX_AUTH_REQUESTS=10
+
+# Logging
+LOG_FORMAT=json
+LOG_OUTPUT=stdout,file
+LOG_FILE_PATH=./logs
+
+# Feature Flags
+FEATURE_ZK_VERIFICATION=false
+FEATURE_BATCH_CREDENTIALS=true
+FEATURE_ANALYTICS=true
+FEATURE_WEBHOOK_EVENTS=true
+
+# External Services
+SENTRY_DSN=
+DATADOG_API_KEY=
+SLACK_WEBHOOK_URL=
 ```
 
-Network configurations are defined in `environments.toml`:
+### 4. Database Setup
 
-- `testnet` — Stellar testnet
-- `mainnet` — Stellar mainnet
-- `futurenet` — Stellar futurenet
-- `standalone` — Local development
-
-### Deploy to Testnet
+Initialize database:
 
 ```bash
-# Configure your testnet identity first
-stellar keys generate deployer --network testnet
+# PostgreSQL
+npm run db:migrate
+npm run db:seed
 
-# Deploy
-./scripts/deploy_testnet.sh
+# MongoDB
+npm run db:init
 ```
 
-### Run Demo
+### 5. Build Project
 
-Follow the step-by-step guide in `demo/demo-script.md`
+```bash
+npm run build
+```
 
-## 📖 Documentation
+## ⚙️ Configuration
 
-- [Architecture Overview](docs/architecture.md)
-- [Trust Slice Model](docs/trust-slices.md)
-- [ZK Verification Design](docs/zk-verification.md)
-- [Threat Model & Security](docs/threat-model.md)
-- [Error Code Reference](docs/error-codes.md)
-- [Roadmap](docs/roadmap.md)
+### TypeScript Configuration
 
-## 🎓 Smart Contract API
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020"],
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true
+  }
+}
+```
 
-### Credential Management
+### Express Middleware Stack
 
-```rust
-issue_credential(subject, credential_type, metadata_hash) -> u64
-get_credential(credential_id) -> Credential
-revoke_credential(credential_id)
+```typescript
+// Order matters!
+app.use(helmet())                    // Security headers
+app.use(cors(corsOptions))           // CORS handling
+app.use(express.json({ limit }))     // JSON parser
+app.use(requestLogger)               // Request logging
+app.use(rateLimiter)                 // Rate limiting
+app.use(authentication)              // Auth middleware
+app.use(requestValidator)            // Input validation
+app.use(errorHandler)                // Error handling
+```
+
+## 🚀 Development
+
+### Start Development Server
+
+```bash
+npm run dev
+```
+
+Server runs on `http://localhost:3000`
+
+### Development with Hot Reload
+
+```bash
+npm run dev:watch
+```
+
+Uses `nodemon` for automatic restart on file changes.
+
+### Development with Docker
+
+```bash
+docker-compose -f docker-compose.dev.yml up
+```
+
+Includes PostgreSQL, Redis, and API server containers.
+
+## 📡 API Endpoints
+
+### Authentication
+
+```http
+POST /api/v1/auth/login
+POST /api/v1/auth/register
+POST /api/v1/auth/refresh
+POST /api/v1/auth/logout
+GET  /api/v1/auth/me
+```
+
+### Credentials
+
+```http
+POST   /api/v1/credentials              # Create credential
+GET    /api/v1/credentials              # List credentials
+GET    /api/v1/credentials/:id          # Get credential
+PATCH  /api/v1/credentials/:id          # Update credential
+DELETE /api/v1/credentials/:id          # Revoke credential
+POST   /api/v1/credentials/batch        # Batch issue
+GET    /api/v1/credentials/:id/verify   # Verify credential
+```
+
+### Attestations
+
+```http
+POST   /api/v1/attestations             # Create attestation
+GET    /api/v1/attestations             # List attestations
+GET    /api/v1/attestations/:id         # Get attestation
+PATCH  /api/v1/attestations/:id/approve # Approve attestation
+PATCH  /api/v1/attestations/:id/reject  # Reject attestation
+GET    /api/v1/attestations/pending     # List pending
 ```
 
 ### Quorum Slices
 
-```rust
-create_slice(attestors: Vec<Address>, threshold: u32) -> u64
-get_slice(slice_id) -> QuorumSlice
-add_attestor(slice_id, attestor)
+```http
+POST   /api/v1/slices                   # Create slice
+GET    /api/v1/slices                   # List slices
+GET    /api/v1/slices/:id               # Get slice
+PATCH  /api/v1/slices/:id               # Update slice
+DELETE /api/v1/slices/:id               # Delete slice
+POST   /api/v1/slices/:id/attestors     # Add attestor
+DELETE /api/v1/slices/:id/attestors/:aid # Remove attestor
 ```
 
-### Attestation
+### SBT Management
 
-```rust
-attest(credential_id, slice_id)
-is_attested(credential_id) -> bool
-get_attestors(credential_id) -> Vec<Address>
+```http
+POST /api/v1/sbt/mint                   # Mint SBT
+POST /api/v1/sbt/burn                   # Burn SBT
+GET  /api/v1/sbt/balance/:owner         # Check balance
 ```
 
-### Conditional Verification (ZK)
+### Analytics
 
-```rust
-verify_claim(credential_id, claim_type, proof) -> bool
-generate_proof_request(credential_id, claim_type) -> ProofRequest
+```http
+GET /api/v1/analytics/credentials      # Credential metrics
+GET /api/v1/analytics/attestations     # Attestation metrics
+GET /api/v1/analytics/users            # User metrics
+GET /api/v1/analytics/contracts        # Contract metrics
+```
+
+## 🔗 WebSocket Events
+
+Connect to `wss://api.credential-labs.org/ws` or `ws://localhost:3000/ws`
+
+### Subscription Events
+
+```javascript
+// Subscribe to credential updates
+socket.emit('subscribe:credentials', { userId: 'user-id' })
+
+// Subscribe to attestation notifications
+socket.emit('subscribe:attestations', { issuerId: 'issuer-id' })
+
+// Listen for credential created
+socket.on('credential:created', (credential) => {})
+
+// Listen for attestation status change
+socket.on('attestation:status', (attestation) => {})
+
+// Listen for error events
+socket.on('error', (error) => {})
+```
+
+## 🔐 Authentication
+
+### JWT Token Flow
+
+```
+1. User logs in with email/password or Stellar account
+2. API generates JWT token (18 hour expiry)
+3. Client stores token in localStorage/sessionStorage
+4. Client includes token in Authorization header
+5. API validates token on each request
+6. Token can be refreshed before expiry
+```
+
+### API Key Authentication
+
+For service-to-service communication:
+
+```bash
+curl -H "X-API-Key: sk_live_XXXX" https://api.example.com/credentials
+```
+
+### Stellar Account Authentication
+
+Optional direct authentication with Stellar account:
+
+```bash
+POST /api/v1/auth/stellar
+Content-Type: application/json
+
+{
+  "publicKey": "GBXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "signature": "SIGNATURE_OF_CHALLENGE"
+}
+```
+
+## 🛡️ Rate Limiting
+
+### Rate Limit Tiers
+
+```
+Public Endpoints:    100 requests/15 minutes
+Authenticated:       500 requests/15 minutes
+Issuer API Key:      1000 requests/15 minutes
+Admin API Key:       5000 requests/15 minutes
+```
+
+### Rate Limit Headers
+
+```http
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 45
+X-RateLimit-Reset: 1634567890
+```
+
+### Rate Limit Response
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+
+{
+  "error": "Too many requests",
+  "retryAfter": 45
+}
+```
+
+## ⚠️ Error Handling
+
+### Error Response Format
+
+```json
+{
+  "error": {
+    "code": "CREDENTIAL_NOT_FOUND",
+    "message": "Credential with ID not found",
+    "statusCode": 404,
+    "timestamp": "2024-07-14T10:30:00Z",
+    "path": "/api/v1/credentials/123",
+    "requestId": "req_abc123def456"
+  }
+}
+```
+
+### Common Error Codes
+
+```
+400  Bad Request           - Invalid input
+401  Unauthorized          - Missing/invalid auth
+403  Forbidden             - Insufficient permissions
+404  Not Found             - Resource not found
+409  Conflict              - State conflict
+422  Unprocessable Entity  - Validation failed
+429  Too Many Requests     - Rate limited
+500  Internal Server Error - Server error
+503  Service Unavailable   - Maintenance/overload
+```
+
+## 💾 Database
+
+### Schema Overview
+
+```sql
+-- Users/Accounts
+CREATE TABLE users (
+  id UUID PRIMARY KEY,
+  email VARCHAR UNIQUE,
+  stellar_account VARCHAR UNIQUE,
+  created_at TIMESTAMP
+);
+
+-- Credentials
+CREATE TABLE credentials (
+  id UUID PRIMARY KEY,
+  issuer_id UUID REFERENCES users,
+  subject_id UUID REFERENCES users,
+  credential_type VARCHAR,
+  metadata JSONB,
+  issued_at TIMESTAMP,
+  revoked_at TIMESTAMP
+);
+
+-- Attestations
+CREATE TABLE attestations (
+  id UUID PRIMARY KEY,
+  credential_id UUID REFERENCES credentials,
+  attestor_id UUID REFERENCES users,
+  status ENUM('pending', 'approved', 'rejected'),
+  created_at TIMESTAMP
+);
+
+-- Quorum Slices
+CREATE TABLE quorum_slices (
+  id UUID PRIMARY KEY,
+  owner_id UUID REFERENCES users,
+  attestors JSONB,
+  threshold INTEGER,
+  created_at TIMESTAMP
+);
 ```
 
 ## 🧪 Testing
 
-Comprehensive test suite covering:
-
-- ✅ Credential issuance and revocation
-- ✅ Quorum slice creation and attestor management
-- ✅ Multi-party attestation flow
-- ✅ ZK conditional verification
-- ✅ SBT non-transferability enforcement
-- ✅ Error handling and edge cases
-
-Run tests:
+### Run All Tests
 
 ```bash
-cargo test
+npm run test
 ```
 
-## 🌍 Why This Matters
+### Run Tests in Watch Mode
 
-**The Problem**: A Mechanical Engineer licensed in Brazil, a nurse licensed in the Philippines, or a lawyer called to the bar in Nigeria all face the same wall applying for a role abroad — weeks of manual credential verification across institutions, embassies, and licensing bodies. Every regulated profession pays this tax independently, with no shared infrastructure.
+```bash
+npm run test:watch
+```
 
-**The Solution**: Credential Protocol collapses that process to a single on-chain query — verified in seconds, privacy-preserving by design, and equally applicable whether the credential is an engineering license, a medical board certification, a CFA charter, or a teaching certificate.
+### Coverage Report
 
-**Blockchain Benefits**:
+```bash
+npm run test:coverage
+```
 
-- No trusted central registry to corrupt or go offline
-- Transparent attestation history, auditable by any party
-- Programmable verification rules enforced by smart contracts
-- Accessible to any professional with a Stellar wallet, in any credentialed field
+### Test Structure
 
-**Target Users**:
+```typescript
+describe('Credentials API', () => {
+  it('should create a new credential', async () => {
+    const response = await request(app)
+      .post('/api/v1/credentials')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        subjectId: 'user-123',
+        type: 'engineering_license',
+        metadata: { state: 'CA' }
+      })
+    
+    expect(response.status).toBe(201)
+    expect(response.body.credential.id).toBeDefined()
+  })
+})
+```
 
-- International employers hiring across borders — engineering firms, hospitals, law firms, accounting firms, schools, security consultancies, and more
-- Professionals seeking global mobility: engineers, doctors, nurses, lawyers, accountants/CFAs, teachers, project managers, security professionals, financial advisors, architects
-- Universities, licensing boards, and professional societies issuing verifiable credentials
-- Governments modernizing professional certification infrastructure across every regulated industry
+## 🚀 Deployment
 
-## 🗺️ Roadmap
+### Build for Production
 
-- **v1.0 (Current)**: Core SBT issuance, quorum slice model, multi-attestor signing
-- **v1.1**: ZK conditional verification (claim-specific proofs)
-- **v2.0**: Revocation registry, credential expiry, renewal flows
-- **v3.0**: Frontend UI with Stellar wallet integration
-- **v4.0**: Mobile app, integration with national licensing APIs
+```bash
+npm run build
+```
 
-See [docs/roadmap.md](docs/roadmap.md) for details.
+### Start Production Server
+
+```bash
+npm start
+```
+
+### Docker Deployment
+
+```bash
+docker build -t credential-api:latest .
+docker run -p 3000:3000 \
+  -e DATABASE_URL=postgresql://... \
+  -e REDIS_URL=redis://... \
+  credential-api:latest
+```
+
+### Environment-Specific Deployment
+
+```bash
+# Testnet
+NODE_ENV=staging STELLAR_NETWORK=testnet npm start
+
+# Mainnet
+NODE_ENV=production STELLAR_NETWORK=mainnet npm start
+```
+
+## ⚡ Performance
+
+### Caching Strategy
+
+- Credentials: 5 minute TTL
+- Quorum Slices: 10 minute TTL
+- User data: 30 minute TTL
+- Smart contract state: 1 minute TTL
+
+### Database Optimization
+
+- Connection pooling (20-50 connections)
+- Indexed queries on frequently searched fields
+- Batch operations for bulk inserts
+- Query result pagination (limit 100)
+
+### API Optimization
+
+- Response compression (gzip)
+- HTTP/2 support
+- ETag support for caching
+- Lazy loading of related data
+
+## 🔒 Security
+
+### Security Headers
+
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+X-XSS-Protection: 1; mode=block
+Strict-Transport-Security: max-age=31536000
+Content-Security-Policy: default-src 'self'
+```
+
+### Input Validation
+
+- All inputs validated and sanitized
+- SQL injection prevention (parameterized queries)
+- XSS prevention (output encoding)
+- CSRF tokens on state-changing operations
+
+### Secrets Management
+
+- Environment variables for sensitive data
+- Never commit secrets to git
+- Use HashiCorp Vault or AWS Secrets Manager in production
+- Regular secret rotation
+
+## 📊 Monitoring
+
+### Health Check Endpoint
+
+```bash
+GET /health
+GET /health/ready
+GET /health/live
+```
+
+### Logging
+
+```bash
+# View logs
+npm run logs
+
+# Export logs
+npm run logs:export
+```
+
+### Metrics
+
+- Request count and latency
+- Error rates and types
+- Database query performance
+- Cache hit/miss rates
 
 ## 🤝 Contributing
 
-We welcome contributions! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-See our [Code of Conduct](CODE_OF_CONDUCT.md) and [Contributing Guidelines](CONTRIBUTING.md).
-
-## 🌊 Drips Wave Contributors
-
-This project participates in **Drips Wave** — a contributor funding program! Check out:
-
-- [Wave Contributor Guide](docs/wave-guide.md) — How to earn funding for contributions
-- [Wave-Ready Issues](https://github.com/issues?q=label%3Awave-ready) — Funded issues ready to tackle
-- GitHub Issues labeled `wave-ready` — Earn 100–200 points per issue
-
-Issues are categorized as:
-
-- `trivial` (100 points) — Documentation, simple tests, minor fixes
-- `medium` (150 points) — Helper functions, validation logic, moderate features
-- `high` (200 points) — Core features, ZK integrations, security enhancements
+1. Fork repository
+2. Create feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -m 'Add new feature'`
+4. Push branch: `git push origin feature/new-feature`
+5. Open Pull Request
 
 ## 📄 License
 
-This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
+MIT License — see [LICENSE](LICENSE) for details.
 
-## 🙏 Acknowledgments
+## 🆘 Support
 
-- [Stellar Development Foundation](https://stellar.org) for Soroban
-- The Stellar whitepaper for the FBA trust model that inspired this design
-- Drips Wave for supporting public goods funding
+- Open issues: [GitHub Issues](https://github.com/credential-labs/credential-protocol-api/issues)
+- Documentation: [API Docs](./docs)
+- Slack: #api-support
+
+---
+
+**Built with ❤️ by Credential Labs**
