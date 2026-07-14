@@ -1,32 +1,47 @@
-# QuorumProof — Federated Engineering Credential Auditor
+# Credential Protocol — Decentralized Professional Credential Auditor
 
-A decentralized professional credential verification platform built on Stellar Soroban smart contracts, using Federated Byzantine Agreement (FBA) trust slices to audit engineering licenses and degrees across borders.
+A decentralized professional credential verification platform built on Stellar Soroban smart contracts, using Federated Byzantine Agreement (FBA) trust slices to audit licenses, degrees, and certifications across borders — for every regulated and credentialed profession, not just one.
 
-Engineering certifications vary by country, making it difficult for international firms to verify credentials quickly and reliably. QuorumProof replaces fragmented government portals with a trustless, privacy-preserving audit layer — powered by the same consensus model that underlies Stellar itself.
+Professional certifications vary by country and by industry, making it difficult for employers, clients, and regulators to verify credentials quickly and reliably. Credential Protocol replaces fragmented government portals, licensing boards, and diploma mills with a single trustless, privacy-preserving audit layer — powered by the same consensus model that underlies Stellar itself.
 
-## 🎯 What is QuorumProof?
+Credential Protocol supports (and is expanding beyond):
 
-QuorumProof lets engineers build a **Quorum Slice** — a personal trust network made up of:
+- ✅ Engineers
+- ✅ Doctors / Medical professionals
+- ✅ Lawyers
+- ✅ Accountants / CFAs
+- ✅ Nurses
+- ✅ Teachers
+- ✅ Project Managers
+- ✅ Security Professionals
+- ✅ Financial Advisors
+- ✅ Architects
 
-- 🎓 Their **University** (degree attestation)
-- 🏛️ A **National Engineering Society** (license validation)
+## 🎯 What is Credential Protocol?
+
+Credential Protocol lets any professional build a **Quorum Slice** — a personal trust network made up of:
+
+- 🎓 Their **University or Training Institution** (degree/certification attestation)
+- 🏛️ A **Licensing Board or Professional Society** (e.g. medical board, bar association, CFA Institute, nursing board, PMI, ISC², FINRA/CFP Board, NCARB, or a national engineering society)
 - 🏢 **Previous Employers** (professional history)
 
 Each node in the slice co-signs a **Soulbound Token (SBT)** on Stellar, creating a tamper-proof, portable credential that any firm can verify instantly — without contacting each institution individually.
 
 This applies the Stellar whitepaper's "individual trust decisions" model to a high-stakes professional use case.
 
-## 🚀 Features
+## ⚠️ ZK Verification — Non-Functional Stub
 
-> **⚠️ ZK Verification is a stub (v1.0)**
-> The `verify_claim` function in `zk_verifier` accepts any non-empty bytes as a valid proof.
-> It provides **no cryptographic security or privacy guarantees** and is admin-gated until
-> real ZK proof verification (Groth16/PLONK) is implemented in v1.1.
-> See [docs/architecture.md](docs/architecture.md) for details.
+> **Do not use `verify_claim` in production.**
+> The `zk_verifier` contract accepts **any non-empty byte string** as a valid proof.
+> It performs **no cryptographic verification** and provides **no privacy guarantees**.
+> It is admin-gated to limit exposure, but the gate is not a substitute for real ZK logic.
+> Real proof verification (Groth16/PLONK) is tracked in [#ZK-IMPL](https://github.com/credential-labs/credential-protocol/issues) and targeted for v1.1.
+
+## 🚀 Features
 
 - **Audit Slices**: Define your own quorum of trusted attestors (university, licensing body, employers)
 - **Soulbound Tokens (SBTs)**: Non-transferable on-chain credentials tied to your Stellar identity
-- **Conditional Verification**: Firms verify specific claims (e.g. "has a Mechanical Engineering degree") without accessing full transcripts — powered by Zero-Knowledge proofs on Soroban
+- **Conditional Verification (stub)**: API exists for claim-specific proofs (e.g. "has an active Medical License" or "has a Mechanical Engineering degree") but ZK verification is not yet implemented — see warning above
 - **Cross-Border Ready**: Instant verification for international hiring, no embassy letters or notarizations
 - **Privacy-First**: Credential holders control what is revealed and to whom
 - **Trustless**: No central registry — verification is enforced by smart contract logic
@@ -67,7 +82,7 @@ STELLAR_NETWORK=testnet
 STELLAR_RPC_URL=https://soroban-testnet.stellar.org
 
 # Contract addresses (after deployment)
-CONTRACT_QUORUM_PROOF=<your-contract-id>
+CONTRACT_CREDENTIAL_PROTOCOL=<your-contract-id>
 CONTRACT_SBT_REGISTRY=<your-contract-id>
 CONTRACT_ZK_VERIFIER=<your-contract-id>
 
@@ -103,6 +118,7 @@ Follow the step-by-step guide in `demo/demo-script.md`
 - [Trust Slice Model](docs/trust-slices.md)
 - [ZK Verification Design](docs/zk-verification.md)
 - [Threat Model & Security](docs/threat-model.md)
+- [Error Code Reference](docs/error-codes.md)
 - [Roadmap](docs/roadmap.md)
 
 ## 🎓 Smart Contract API
@@ -157,23 +173,23 @@ cargo test
 
 ## 🌍 Why This Matters
 
-**The Problem**: A Mechanical Engineer licensed in Brazil applying for a role in Germany faces weeks of manual credential verification across institutions, embassies, and licensing bodies.
+**The Problem**: A Mechanical Engineer licensed in Brazil, a nurse licensed in the Philippines, or a lawyer called to the bar in Nigeria all face the same wall applying for a role abroad — weeks of manual credential verification across institutions, embassies, and licensing bodies. Every regulated profession pays this tax independently, with no shared infrastructure.
 
-**The Solution**: QuorumProof collapses that process to a single on-chain query — verified in seconds, privacy-preserving by design.
+**The Solution**: Credential Protocol collapses that process to a single on-chain query — verified in seconds, privacy-preserving by design, and equally applicable whether the credential is an engineering license, a medical board certification, a CFA charter, or a teaching certificate.
 
 **Blockchain Benefits**:
 
 - No trusted central registry to corrupt or go offline
 - Transparent attestation history, auditable by any party
 - Programmable verification rules enforced by smart contracts
-- Accessible to any engineer with a Stellar wallet
+- Accessible to any professional with a Stellar wallet, in any credentialed field
 
 **Target Users**:
 
-- International engineering firms hiring across borders
-- Engineers seeking global mobility
-- Universities and licensing bodies issuing verifiable credentials
-- Governments modernizing professional certification infrastructure
+- International employers hiring across borders — engineering firms, hospitals, law firms, accounting firms, schools, security consultancies, and more
+- Professionals seeking global mobility: engineers, doctors, nurses, lawyers, accountants/CFAs, teachers, project managers, security professionals, financial advisors, architects
+- Universities, licensing boards, and professional societies issuing verifiable credentials
+- Governments modernizing professional certification infrastructure across every regulated industry
 
 ## 🗺️ Roadmap
 
